@@ -1,0 +1,79 @@
+import re
+
+class IOAgent: # Simplified as a regular class, no longer a Mesa Agent
+    def __init__(self):
+        self.expression = ""
+        self.result = None
+
+    def parse_expression(self, expr):
+        # Ensure floating point numbers are correctly tokenized before integers
+        tokens = re.findall(r'\d+\.\d+|\d+|[+\-*/^()]', expr)
+        return tokens
+
+    def precedence(self, op):
+        if op in ('+', '-'): return 1
+        if op in ('*', '/'): return 2
+        if op == '^': return 3
+        return 0
+
+    def apply_op(self, a, b, op):
+        if op == '+':
+            return a + b
+        elif op == '-':
+            return a - b
+        elif op == '*':
+            return a * b
+        elif op == '/':
+            if b == 0:
+                return float('inf') # Or raise an error
+            return a / b
+        elif op == '^':
+            return a ** b
+        return 0 # Should not reach here
+
+    def evaluate(self, expr):
+        tokens = self.parse_expression(expr)
+        values = []
+        ops = []
+        i = 0
+        while i < len(tokens):
+            if tokens[i] == '(':
+                ops.append(tokens[i])
+            elif tokens[i].replace('.', '', 1).isdigit():
+                values.append(float(tokens[i]))
+            elif tokens[i] == ')':
+                while ops and ops[-1] != '(':
+                    b = values.pop()
+                    a = values.pop()
+                    op = ops.pop()
+                    values.append(self.apply_op(a, b, op))
+                ops.pop() # Pop the '('
+            elif tokens[i] in '+-*/^':
+                while (ops and self.precedence(ops[-1]) >= self.precedence(tokens[i])):
+                    b = values.pop()
+                    a = values.pop()
+                    op = ops.pop()
+                    values.append(self.apply_op(a, b, op))
+                ops.append(tokens[i])
+            i += 1
+
+        while ops:
+            b = values.pop()
+            a = values.pop()
+            op = ops.pop()
+            values.append(self.apply_op(a, b, op))
+
+        self.result = values[0] if values else None # Handle empty expression
+        return self.result
+
+# Simplified the execution loop, no longer using a Mesa Model instance
+io_handler = IOAgent()
+while True:
+    expr = input("Ingrese una expresión (o 'salir'): ")
+    if expr.lower() == "salir":
+        break
+    try:
+        result = io_handler.evaluate(expr)
+        print("Resultado:", result)
+    except Exception as e:
+        print("Error:", e)

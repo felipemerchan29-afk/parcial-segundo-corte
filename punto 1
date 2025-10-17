@@ -1,0 +1,58 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from IPython.display import HTML
+
+np.random.seed(42)
+n_points = 100
+X = np.random.rand(n_points, 2)
+true_slope = 0.5
+true_intercept = 0.2
+y = np.where(X[:, 1] > true_slope * X[:, 0] + true_intercept, 1, -1)
+
+class Perceptron:
+    def __init__(self, learning_rate=0.1):
+        self.lr = learning_rate
+        self.w = np.random.uniform(-1, 1, 2)
+        self.b = np.random.uniform(-1, 1)
+    def predict(self, x):
+        return np.where(np.dot(x, self.w) + self.b >= 0, 1, -1)
+    def train(self, X, y, n_epochs=20):
+        history = []
+        for epoch in range(n_epochs):
+            for xi, target in zip(X, y):
+                y_pred = self.predict(xi)
+                error = target - y_pred
+                self.w += self.lr * error * xi
+                self.b += self.lr * error
+            history.append((self.w.copy(), self.b))
+        return history
+
+def plot_decision_boundary(w, b):
+    x_vals = np.array([0, 1])
+    if w[1] != 0:
+        y_vals = - (w[0] / w[1]) * x_vals - b / w[1]
+    else:
+        y_vals = np.zeros_like(x_vals)
+    return x_vals, y_vals
+
+# Experiment with different learning rates
+learning_rates_to_try = [0.01, 0.1, 0.5]
+epochs = 25
+
+for learning_rate in learning_rates_to_try:
+    print(f"\nTraining with learning rate: {learning_rate}")
+    model = Perceptron(learning_rate=learning_rate)
+    history = model.train(X, y, epochs)
+
+    final_w, final_b = history[-1]
+    y_pred = np.where(np.dot(X, final_w) + final_b >= 0, 1, -1)
+    acc = np.mean(y_pred == y) * 100
+    print(f"Precisión final: {acc:.2f}%")
+    print(f"Pesos finales: {final_w}")
+    print(f"Bias final: {final_b:.3f}")
+
+# The animation part will only show the last learning rate trained
+fig, ax = plt.subplots(figsize=(6,6))
+ani = FuncAnimation(fig, update, frames=len(history), interval=400, repeat=False)
+HTML(ani.to_jshtml())
